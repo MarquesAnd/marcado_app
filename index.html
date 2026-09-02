@@ -96,6 +96,19 @@ header{
 }
 .chev{color:var(--muted); opacity:.5; flex-shrink:0;}
 
+.cat-head{
+  width:100%; display:flex; align-items:center; gap:8px; padding:11px 2px 7px;
+  border-bottom:1px solid var(--border);
+}
+.cat-head .cat-chev{transition:transform .18s; color:var(--accent);}
+.cat-head.closed .cat-chev{transform:rotate(-90deg);}
+.cat-name{font-size:13px; font-weight:700; color:var(--accent-deep); text-transform:uppercase; letter-spacing:.04em;}
+.cat-meta{margin-left:auto; font-size:12px; color:var(--muted);}
+.catchips{display:flex; flex-wrap:wrap; gap:6px; margin-top:7px;}
+.catchip{
+  font-size:12.5px; padding:5px 11px; border-radius:13px;
+  background:var(--tint); color:var(--tint-text); font-weight:600;
+}
 .add-inline{
   width:100%; margin:10px 0 6px; padding:11px; border-radius:13px;
   border:1.5px dashed var(--accent); color:var(--accent); font-size:14px; font-weight:500;
@@ -330,6 +343,9 @@ nav button.on{color:var(--accent);}
       <div><label>Tamanho / unidade</label><input id="itSize" placeholder="ex: 5kg, 1L"></div>
       <div><label>Qtd. planejada</label><input id="itPlanned" type="number" inputmode="decimal" min="0" step="any"></div>
     </div>
+    <label>Categoria</label>
+    <input id="itCat" placeholder="ex: Hortifruti, Limpeza…" maxlength="24">
+    <div class="catchips" id="itCatChips"></div>
     <div class="qty-row">
       <div><label>Qtd. comprada</label><input id="itQty" type="number" inputmode="decimal" min="0" step="any"></div>
       <div><label>Valor unitário (R$)</label><input id="itPrice" inputmode="decimal" placeholder="0,00"></div>
@@ -353,6 +369,9 @@ nav button.on{color:var(--accent);}
       <div><label>Tamanho / unidade</label><input id="adSize" placeholder="ex: 5kg"></div>
       <div><label>Qtd. planejada</label><input id="adPlanned" type="number" inputmode="decimal" min="0" step="any" value="1"></div>
     </div>
+    <label>Categoria</label>
+    <input id="adCat" placeholder="ex: Hortifruti, Limpeza…" maxlength="24">
+    <div class="catchips" id="adCatChips"></div>
     <label style="display:flex;align-items:center;gap:9px;margin-top:16px;font-size:14.5px;color:var(--text)">
       <input type="checkbox" id="adNow" style="width:20px;height:20px;accent-color:var(--accent)">
       Já peguei agora (fora da lista)
@@ -674,11 +693,27 @@ $('nwJoin').onclick=async()=>{
 };
 
 /* ---------------- itens ---------------- */
+const catKey = () => 'marcado_closed_'+(state.activeListId||'');
+function closedCats(){ try{ return JSON.parse(localStorage.getItem(catKey())||'{}'); }catch(e){ return {}; } }
+function toggleCat(c){ const m=closedCats(); if(m[c]) delete m[c]; else m[c]=1; localStorage.setItem(catKey(), JSON.stringify(m)); lastSig=''; renderItems(); }
+function listCats(){
+  const set=new Set();
+  activeItems().forEach(i=>{ const c=(i.category||'').trim(); if(c) set.add(c); });
+  return [...set].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+}
+function renderCatChips(boxId, inputId){
+  const box=$(boxId); box.innerHTML='';
+  listCats().forEach(c=>{
+    const b=document.createElement('button'); b.className='catchip'; b.textContent=c;
+    b.onclick=()=>{ $(inputId).value=c; };
+    box.appendChild(b);
+  });
+}
 let lastSig='';
 function renderItems(){
   const w=$('itemsWrap');
   const its=activeItems();
-  const sig=state.activeListId+'|'+JSON.stringify(its.map(i=>[i.id,i.name,i.size,i.planned_qty,i.bought,i.bought_qty,i.unit_price,i.added_by]));
+  const sig=state.activeListId+'|'+JSON.stringify(closedCats())+'|'+JSON.stringify(its.map(i=>[i.id,i.name,i.size,i.planned_qty,i.bought,i.bought_qty,i.unit_price,i.added_by,i.category]));
   if (sig===lastSig) return;
   lastSig=sig;
   w.innerHTML='';
@@ -691,8 +726,31 @@ function renderItems(){
     w.innerHTML='<div class="empty"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6h15l-1.7 8.5a2 2 0 0 1-2 1.5H8.7a2 2 0 0 1-2-1.6L5 3H2"/><circle cx="9" cy="20" r="1.6"/><circle cx="17" cy="20" r="1.6"/></svg>Lista vazia.<br>Toque em <b>Adicionar item</b> para começar.</div>';
     return;
   }
-  const sorted=[...its].sort((a,b)=> ((a.bought?1:0)-(b.bought?1:0)) || byCreation(a,b));
-  sorted.forEach(it=>{
+  const grupos={};
+  its.forEach(i=>{ const c=(i.category||'').trim()||'\u0000sem'; (grupos[c]=grupos[c]||[]).push(i); });
+  const nomes=Object.keys(grupos).sort((a,b)=>{
+    if(a==='\u0000sem') return 1; if(b==='\u0000sem') return -1;
+    return a.localeCompare(b,'pt-BR');
+  });
+  const fechadas=closedCats();
+  const temCategorias = nomes.length>1 || (nomes.length===1 && nomes[0]!=='\u0000sem');
+  nomes.forEach(cat=>{
+    const arr=grupos[cat].sort((a,b)=> ((a.bought?1:0)-(b.bought?1:0)) || byCreation(a,b));
+    const label = cat==='\u0000sem' ? 'Sem categoria' : cat;
+    const fechada = !!fechadas[label];
+    if (temCategorias){
+      const gDone=arr.filter(x=>x.bought).length;
+      const gTot=arr.reduce((s,x)=>s+(x.bought?x.bought_qty*x.unit_price:0),0);
+      const h=document.createElement('button');
+      h.className='cat-head'+(fechada?' closed':'');
+      h.innerHTML=`<svg class="icon sm cat-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        <span class="cat-name">${esc(label)}</span>
+        <span class="cat-meta">${gDone}/${arr.length}${gTot?' · '+fmt(gTot):''}</span>`;
+      h.onclick=()=>toggleCat(label);
+      w.appendChild(h);
+      if (fechada) return;
+    }
+    arr.forEach(it=>{
     const b=document.createElement('button');
     b.className='item'+(it.bought?' done':'');
     const size=it.size?(' — '+it.size):'';
@@ -706,6 +764,7 @@ function renderItems(){
       <svg class="icon sm chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>`;
     b.onclick=()=>openItemSheet(it);
     w.appendChild(b);
+    });
   });
 }
 const esc = s => String(s??'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
@@ -714,6 +773,7 @@ function openItemSheet(it){
   editingItem=it;
   $('itNameTitle').textContent=it.bought?'Editar item pego':'Marcar item';
   $('itName').value=it.name; $('itSize').value=it.size||'';
+  $('itCat').value=it.category||''; renderCatChips('itCatChips','itCat');
   $('itPlanned').value=it.planned_qty;
   $('itQty').value=it.bought?it.bought_qty:it.planned_qty;
   $('itPrice').value=(it.bought?it.unit_price:it.last_price)?String((it.bought?it.unit_price:it.last_price)).replace('.',','):'';
@@ -731,6 +791,7 @@ $('itConfirm').onclick=async()=>{
   const it=editingItem;
   it.name=$('itName').value.trim()||it.name;
   it.size=$('itSize').value.trim();
+  it.category=$('itCat').value.trim();
   it.planned_qty=parseFloat($('itPlanned').value)||1;
   it.bought=true;
   it.bought_qty=parseFloat($('itQty').value)||it.planned_qty;
@@ -759,7 +820,7 @@ async function pushItem(it){
   const ok = await push('items','upsert',{id:it.id,list_id:it.list_id,name:it.name,size:it.size,
     planned_qty:it.planned_qty,bought:it.bought,bought_qty:it.bought_qty,
     unit_price:it.unit_price,last_price:it.last_price,extra:it.extra,position:it.position,
-    added_by:it.added_by||'',updated_at:new Date().toISOString()});
+    added_by:it.added_by||'',category:it.category||'',updated_at:new Date().toISOString()});
   if (ok) clearDirtySoon(it.id);
   return ok;
 }
@@ -767,6 +828,7 @@ async function pushItem(it){
 $('btnAddItem').onclick=()=>{
   if(!activeList()){ alert('Crie uma categoria primeiro (botão +).'); return; }
   $('adName').value=''; $('adSize').value=''; $('adPlanned').value='1';
+  $('adCat').value=''; renderCatChips('adCatChips','adCat');
   $('adNow').checked=false; $('adNowFields').style.display='none';
   $('adQty').value='1'; $('adPrice').value='';
   open('ovAdd'); setTimeout(()=>$('adName').focus(),150);
@@ -776,6 +838,7 @@ $('adConfirm').onclick=async()=>{
   const n=$('adName').value.trim(); if(!n){ $('adName').focus(); return; }
   const now=$('adNow').checked;
   const it={ id:uuid(), list_id:state.activeListId, name:n, size:$('adSize').value.trim(),
+    category:$('adCat').value.trim(),
     planned_qty:parseFloat($('adPlanned').value)||1,
     bought:now, bought_qty:now?(parseFloat($('adQty').value)||1):0,
     unit_price:now?parseMoneyLoose($('adPrice').value):0,
