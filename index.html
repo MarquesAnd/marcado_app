@@ -31,12 +31,12 @@ html,body{margin:0; padding:0;}
 body{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   background:var(--bg); color:var(--text); font-size:16px; line-height:1.45;
-  padding-bottom:calc(76px + env(safe-area-inset-bottom));
+  padding-bottom:calc(66px + env(safe-area-inset-bottom));
   transition:background .25s,color .25s;
 }
 button{font:inherit; border:none; background:none; color:inherit; cursor:pointer; padding:0;}
 input,select{
-  font:inherit; width:100%; padding:11px 12px; border-radius:12px;
+  font:inherit; width:100%; padding:10px 12px; border-radius:12px;
   border:1.5px solid var(--border); background:var(--card); color:var(--text); outline:none;
 }
 input:focus{border-color:var(--accent);}
@@ -44,31 +44,31 @@ label{font-size:13px; color:var(--muted); display:block; margin:12px 0 5px;}
 .icon{width:22px; height:22px; stroke:currentColor; stroke-width:2; fill:none;
   stroke-linecap:round; stroke-linejoin:round; display:block;}
 .icon.sm{width:17px; height:17px;}
-h1{font-size:22px; font-weight:700; margin:0;}
-h2{font-size:17px; font-weight:600; margin:0 0 10px;}
+h1{font-size:19px; font-weight:700; margin:0;}
+h2{font-size:16px; font-weight:600; margin:0 0 8px;}
 
 /* ---------- header ---------- */
 header{
   display:flex; align-items:center; justify-content:space-between;
-  padding:calc(14px + env(safe-area-inset-top)) 18px 10px;
+  padding:calc(10px + env(safe-area-inset-top)) 16px 4px;
 }
 .hbtns{display:flex; gap:14px; align-items:center; color:var(--accent);}
 .brand{display:flex; align-items:center; gap:9px;}
 .brand-mark{
-  width:30px; height:30px; border-radius:9px; background:var(--accent);
+  width:27px; height:27px; border-radius:8px; background:var(--accent);
   display:flex; align-items:center; justify-content:center; color:#fff;
 }
 [data-theme="dark"] .brand-mark{color:#2b0f1b;}
 
 /* ---------- telas ---------- */
-.screen{display:none; padding:0 18px;}
+.screen{display:none; padding:0 16px;}
 .screen.on{display:block;}
 
 /* ---------- abas de listas ---------- */
-.tabs{display:flex; gap:8px; overflow-x:auto; padding:6px 0 12px; scrollbar-width:none;}
+.tabs{display:flex; gap:7px; overflow-x:auto; padding:4px 0 9px; scrollbar-width:none;}
 .tabs::-webkit-scrollbar{display:none;}
 .tab{
-  flex-shrink:0; padding:8px 16px; border-radius:18px; font-size:14px;
+  flex-shrink:0; padding:6px 13px; border-radius:16px; font-size:13px;
   background:var(--card); color:var(--muted); border:1.5px solid var(--border);
   display:flex; align-items:center; gap:6px; white-space:nowrap;
 }
@@ -78,28 +78,28 @@ header{
 
 /* ---------- card resumo ---------- */
 .summary{
-  background:var(--tint); border-radius:16px; padding:14px 16px;
+  background:var(--tint); border-radius:14px; padding:11px 14px;
   display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;
 }
 .summary p{margin:0;}
-.s-label{font-size:12px; color:var(--tint-text); opacity:.85;}
-.s-value{font-size:21px; font-weight:700; color:var(--tint-text);}
+.s-label{font-size:11.5px; color:var(--tint-text); opacity:.85;}
+.s-value{font-size:18px; font-weight:700; color:var(--tint-text);}
 
 /* ---------- itens ---------- */
 .item{
-  display:flex; align-items:center; gap:12px; padding:13px 2px;
+  display:flex; align-items:center; gap:11px; padding:10px 2px;
   border-bottom:1px solid var(--border); width:100%; text-align:left;
 }
 .chk{
-  width:26px; height:26px; border-radius:50%; flex-shrink:0;
+  width:23px; height:23px; border-radius:50%; flex-shrink:0;
   border:2px solid var(--border); display:flex; align-items:center; justify-content:center;
 }
 .item.done .chk{background:var(--success); border-color:var(--success); color:#fff;}
 [data-theme="dark"] .item.done .chk{color:#0c231c;}
 .item-body{flex:1; min-width:0;}
-.item-name{font-size:15px; font-weight:500; margin:0;}
+.item-name{font-size:14.5px; font-weight:500; margin:0;}
 .item.done .item-name{text-decoration:line-through; color:var(--muted); font-weight:400;}
-.item-sub{font-size:12.5px; color:var(--muted); margin:1px 0 0;}
+.item-sub{font-size:12px; color:var(--muted); margin:1px 0 0;}
 .item.done .item-sub{color:var(--success);}
 .badge-extra{
   font-size:10.5px; background:var(--tint); color:var(--tint-text);
@@ -108,29 +108,29 @@ header{
 .chev{color:var(--muted); opacity:.5; flex-shrink:0;}
 
 .add-inline{
-  width:100%; margin:14px 0 8px; padding:13px; border-radius:14px;
-  border:1.5px dashed var(--accent); color:var(--accent); font-size:14.5px; font-weight:500;
+  width:100%; margin:10px 0 6px; padding:11px; border-radius:13px;
+  border:1.5px dashed var(--accent); color:var(--accent); font-size:14px; font-weight:500;
   display:flex; align-items:center; justify-content:center; gap:7px; background:transparent;
 }
 .finish{
-  width:100%; margin:6px 0 16px; padding:15px; border-radius:14px;
-  background:var(--accent); color:#fff; font-size:15.5px; font-weight:700;
+  width:100%; margin:4px 0 14px; padding:13px; border-radius:13px;
+  background:var(--accent); color:#fff; font-size:15px; font-weight:700;
   display:flex; align-items:center; justify-content:center; gap:8px;
 }
 [data-theme="dark"] .finish{color:#2b0f1b;}
 .empty{
-  text-align:center; color:var(--muted); padding:44px 20px; font-size:14.5px;
+  text-align:center; color:var(--muted); padding:26px 20px; font-size:14px;
 }
-.empty .icon{width:40px; height:40px; margin:0 auto 12px; stroke-width:1.4; opacity:.55;}
+.empty .icon{width:34px; height:34px; margin:0 auto 10px; stroke-width:1.4; opacity:.55;}
 
 /* ---------- relatório / histórico ---------- */
 .months{display:flex; gap:8px; overflow-x:auto; padding:4px 0 14px; scrollbar-width:none;}
 .months::-webkit-scrollbar{display:none;}
 .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
-.stat{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:13px 14px;}
+.stat{background:var(--card); border:1px solid var(--border); border-radius:13px; padding:11px 13px;}
 .stat p{margin:0;}
 .stat .k{font-size:12px; color:var(--muted);}
-.stat .v{font-size:19px; font-weight:700; margin-top:2px;}
+.stat .v{font-size:17.5px; font-weight:700; margin-top:2px;}
 .bars{display:flex; gap:10px; align-items:flex-end; height:130px; padding:14px 4px 4px;}
 .barcol{flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0;}
 .bar{width:100%; max-width:38px; background:var(--accent); border-radius:7px 7px 3px 3px; min-height:4px;}
@@ -157,13 +157,14 @@ nav{
   position:fixed; bottom:0; left:0; right:0; z-index:40;
   background:var(--card); border-top:1px solid var(--border);
   display:flex; justify-content:space-around;
-  padding:8px 6px calc(10px + env(safe-area-inset-bottom));
+  padding:5px 6px calc(6px + env(safe-area-inset-bottom));
 }
 nav button{
-  display:flex; flex-direction:column; align-items:center; gap:3px;
-  color:var(--muted); font-size:10.5px; font-weight:600; letter-spacing:.02em;
-  min-width:64px; padding:4px 0;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  color:var(--muted); font-size:10px; font-weight:600; letter-spacing:.02em;
+  min-width:62px; padding:3px 0;
 }
+nav .icon{width:20px; height:20px;}
 nav button.on{color:var(--accent);}
 
 /* ---------- sheets / modais ---------- */
@@ -231,7 +232,7 @@ nav button.on{color:var(--accent);}
 <!-- ============ LOGIN ============ -->
 <div id="authScreen">
   <div class="auth-logo">
-    <svg class="icon" style="width:32px;height:32px;stroke-width:2.6" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+    <svg class="icon" style="width:34px;height:34px;stroke-width:1.9" viewBox="0 0 24 24"><path d="M6 8h12l-1.1 11a2 2 0 0 1-2 1.8H9.1a2 2 0 0 1-2-1.8L6 8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/><path d="M9.4 14.2l2 2 3.4-3.9"/></svg>
   </div>
   <h1 style="text-align:center">Marcado</h1>
   <p style="text-align:center;color:var(--muted);font-size:14px;margin:6px 0 18px">Sua lista de compras inteligente</p>
@@ -250,7 +251,7 @@ nav button.on{color:var(--accent);}
 <div id="appWrap">
 <header>
   <div class="brand">
-    <div class="brand-mark"><svg class="icon sm" style="stroke-width:3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+    <div class="brand-mark"><svg class="icon sm" style="stroke-width:2.1" viewBox="0 0 24 24"><path d="M6 8h12l-1.1 11a2 2 0 0 1-2 1.8H9.1a2 2 0 0 1-2-1.8L6 8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/><path d="M9.4 14.2l2 2 3.4-3.9"/></svg></div>
     <h1 id="headerTitle">Marcado</h1>
   </div>
   <div class="hbtns">
