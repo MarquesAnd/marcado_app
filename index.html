@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Marcado</title>
+<meta name="description" content="Lista de compras com preços, totais automáticos e relatório mensal">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Marcado">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#534AB7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16101A" media="(prefers-color-scheme: dark)">
+<style>
+:root{
+  --bg:#F5F4FA; --card:#FFFFFF; --text:#211D3B; --muted:#6E6A8A;
+  --accent:#534AB7; --accent-deep:#3C3489; --tint:#EEEDFE; --tint-text:#3C3489;
+  --border:#E4E2F0; --success:#1D9E75; --success-tint:#E1F5EE; --danger:#A32D2D;
+  --sheet-shadow:0 -8px 40px rgba(33,29,59,.18);
+}
+[data-theme="dark"]{
+  --bg:#16101A; --card:#221726; --text:#F7ECF2; --muted:#B096A8;
+  --accent:#D4537E; --accent-deep:#F4C0D1; --tint:#35202C; --tint-text:#F4C0D1;
+  --border:#3A2B38; --success:#5DCAA5; --success-tint:#1c332b; --danger:#F09595;
+  --sheet-shadow:0 -8px 40px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:var(--bg); color:var(--text); font-size:16px; line-height:1.45;
+  padding-bottom:calc(76px + env(safe-area-inset-bottom));
+  transition:background .25s,color .25s;
+}
+button{font:inherit; border:none; background:none; color:inherit; cursor:pointer; padding:0;}
+input,select{
+  font:inherit; width:100%; padding:11px 12px; border-radius:12px;
+  border:1.5px solid var(--border); background:var(--card); color:var(--text); outline:none;
+}
+input:focus{border-color:var(--accent);}
+label{font-size:13px; color:var(--muted); display:block; margin:12px 0 5px;}
+.icon{width:22px; height:22px; stroke:currentColor; stroke-width:2; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; display:block;}
+.icon.sm{width:17px; height:17px;}
+h1{font-size:22px; font-weight:700; margin:0;}
+h2{font-size:17px; font-weight:600; margin:0 0 10px;}
+
+/* ---------- header ---------- */
+header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:calc(14px + env(safe-area-inset-top)) 18px 10px;
+}
+.hbtns{display:flex; gap:14px; align-items:center; color:var(--accent);}
+.brand{display:flex; align-items:center; gap:9px;}
+.brand-mark{
+  width:30px; height:30px; border-radius:9px; background:var(--accent);
+  display:flex; align-items:center; justify-content:center; color:#fff;
+}
+[data-theme="dark"] .brand-mark{color:#2b0f1b;}
+
+/* ---------- telas ---------- */
+.screen{display:none; padding:0 18px;}
+.screen.on{display:block;}
+
+/* ---------- abas de listas ---------- */
+.tabs{display:flex; gap:8px; overflow-x:auto; padding:6px 0 12px; scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{
+  flex-shrink:0; padding:8px 16px; border-radius:18px; font-size:14px;
+  background:var(--card); color:var(--muted); border:1.5px solid var(--border);
+  display:flex; align-items:center; gap:6px; white-space:nowrap;
+}
+.tab.active{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600;}
+[data-theme="dark"] .tab.active{color:#2b0f1b;}
+.tab.ghost{border-style:dashed; color:var(--accent);}
+
+/* ---------- card resumo ---------- */
+.summary{
+  background:var(--tint); border-radius:16px; padding:14px 16px;
+  display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;
+}
+.summary p{margin:0;}
+.s-label{font-size:12px; color:var(--tint-text); opacity:.85;}
+.s-value{font-size:21px; font-weight:700; color:var(--tint-text);}
+
+/* ---------- itens ---------- */
+.item{
+  display:flex; align-items:center; gap:12px; padding:13px 2px;
+  border-bottom:1px solid var(--border); width:100%; text-align:left;
+}
+.chk{
+  width:26px; height:26px; border-radius:50%; flex-shrink:0;
+  border:2px solid var(--border); display:flex; align-items:center; justify-content:center;
+}
+.item.done .chk{background:var(--success); border-color:var(--success); color:#fff;}
+[data-theme="dark"] .item.done .chk{color:#0c231c;}
+.item-body{flex:1; min-width:0;}
+.item-name{font-size:15px; font-weight:500; margin:0;}
+.item.done .item-name{text-decoration:line-through; color:var(--muted); font-weight:400;}
+.item-sub{font-size:12.5px; color:var(--muted); margin:1px 0 0;}
+.item.done .item-sub{color:var(--success);}
+.badge-extra{
+  font-size:10.5px; background:var(--tint); color:var(--tint-text);
+  border-radius:8px; padding:1.5px 7px; margin-left:6px; font-weight:600;
+}
+.chev{color:var(--muted); opacity:.5; flex-shrink:0;}
+
+.add-inline{
+  width:100%; margin:14px 0 8px; padding:13px; border-radius:14px;
+  border:1.5px dashed var(--accent); color:var(--accent); font-size:14.5px; font-weight:500;
+  display:flex; align-items:center; justify-content:center; gap:7px; background:transparent;
+}
+.finish{
+  width:100%; margin:6px 0 16px; padding:15px; border-radius:14px;
+  background:var(--accent); color:#fff; font-size:15.5px; font-weight:700;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
+[data-theme="dark"] .finish{color:#2b0f1b;}
+.empty{
+  text-align:center; color:var(--muted); padding:44px 20px; font-size:14.5px;
+}
+.empty .icon{width:40px; height:40px; margin:0 auto 12px; stroke-width:1.4; opacity:.55;}
+
+/* ---------- relatório / histórico ---------- */
+.months{display:flex; gap:8px; overflow-x:auto; padding:4px 0 14px; scrollbar-width:none;}
+.months::-webkit-scrollbar{display:none;}
+.stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;}
+.stat{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:13px 14px;}
+.stat p{margin:0;}
+.stat .k{font-size:12px; color:var(--muted);}
+.stat .v{font-size:19px; font-weight:700; margin-top:2px;}
+.bars{display:flex; gap:10px; align-items:flex-end; height:130px; padding:14px 4px 4px;}
+.barcol{flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0;}
+.bar{width:100%; max-width:38px; background:var(--accent); border-radius:7px 7px 3px 3px; min-height:4px;}
+.bar.dim{background:var(--tint);}
+.bar-lbl{font-size:10.5px; color:var(--muted); white-space:nowrap;}
+.panel{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px 16px; margin-bottom:12px;}
+.row{display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:14px;}
+.row:last-child{border-bottom:none;}
+.hist{width:100%; text-align:left; background:var(--card); border:1px solid var(--border);
+  border-radius:16px; padding:14px 16px; margin-bottom:10px;}
+.hist-top{display:flex; justify-content:space-between; align-items:baseline;}
+.hist-items{display:none; margin-top:10px; border-top:1px solid var(--border); padding-top:8px;}
+.hist.open .hist-items{display:block;}
+
+/* ---------- ajustes ---------- */
+.seg{display:flex; background:var(--card); border:1.5px solid var(--border); border-radius:12px; overflow:hidden;}
+.seg button{flex:1; padding:10px 0; font-size:14px; color:var(--muted);}
+.seg button.on{background:var(--accent); color:#fff; font-weight:600;}
+[data-theme="dark"] .seg button.on{color:#2b0f1b;}
+.danger-btn{color:var(--danger); font-weight:600;}
+
+/* ---------- menu inferior ---------- */
+nav{
+  position:fixed; bottom:0; left:0; right:0; z-index:40;
+  background:var(--card); border-top:1px solid var(--border);
+  display:flex; justify-content:space-around;
+  padding:8px 6px calc(10px + env(safe-area-inset-bottom));
+}
+nav button{
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  color:var(--muted); font-size:10.5px; font-weight:600; letter-spacing:.02em;
+  min-width:64px; padding:4px 0;
+}
+nav button.on{color:var(--accent);}
+
+/* ---------- sheets / modais ---------- */
+.overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:50;
+  display:none; align-items:flex-end; justify-content:center;
+}
+.overlay.on{display:flex;}
+.sheet{
+  background:var(--card); width:100%; max-width:520px;
+  border-radius:22px 22px 0 0; padding:10px 20px calc(22px + env(safe-area-inset-bottom));
+  box-shadow:var(--sheet-shadow); max-height:88vh; overflow-y:auto;
+}
+.grip{width:40px; height:4.5px; border-radius:3px; background:var(--border); margin:6px auto 14px;}
+.sheet-title{display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;}
+.qty-row{display:flex; gap:10px;}
+.qty-row>div{flex:1;}
+.total-preview{
+  margin:16px 0 4px; background:var(--tint); border-radius:12px; padding:11px 14px;
+  display:flex; justify-content:space-between; color:var(--tint-text); font-weight:700;
+}
+.btn{width:100%; padding:14px; border-radius:13px; font-size:15px; font-weight:700; margin-top:10px;}
+.btn.primary{background:var(--accent); color:#fff;}
+[data-theme="dark"] .btn.primary{color:#2b0f1b;}
+.btn.line{border:1.5px solid var(--border); color:var(--text);}
+.btn.txt-danger{color:var(--danger);}
+.code-box{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  background:var(--tint); border-radius:13px; padding:13px 16px; margin-top:6px;
+}
+.code-box b{font-size:21px; letter-spacing:2.5px; color:var(--tint-text); font-family:ui-monospace,Menlo,monospace;}
+.hint{font-size:12.5px; color:var(--muted); margin:8px 0 0;}
+.offline-pill{
+  display:none; position:fixed; top:calc(8px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%);
+  background:var(--card); border:1px solid var(--border); color:var(--muted);
+  font-size:12px; padding:6px 14px; border-radius:16px; z-index:60; align-items:center; gap:6px;
+}
+.offline-pill.on{display:flex;}
+
+/* ---------- auth ---------- */
+#authScreen{
+  display:none; min-height:100vh; padding:0 26px;
+  flex-direction:column; justify-content:center; max-width:440px; margin:0 auto;
+}
+#authScreen.on{display:flex;}
+.auth-logo{
+  width:64px; height:64px; border-radius:18px; background:var(--accent);
+  display:flex; align-items:center; justify-content:center; color:#fff; margin:0 auto 14px;
+}
+[data-theme="dark"] .auth-logo{color:#2b0f1b;}
+.auth-err{color:var(--danger); font-size:13.5px; margin:10px 0 0; text-align:center; min-height:18px;}
+.link{color:var(--accent); font-weight:600; text-align:center; display:block; margin-top:16px; width:100%;}
+#appWrap{display:none;}
+#appWrap.on{display:block;}
+@media(min-width:560px){ .screen,header{max-width:560px; margin-left:auto; margin-right:auto;} }
+</style>
+</head>
+<body>
+
+<div class="offline-pill" id="offlinePill">
+  <svg class="icon sm" viewBox="0 0 24 24"><path d="M3 3l18 18M9.5 9.6a5 5 0 0 1 7 4.6M5.7 5.8A9 9 0 0 0 3 12a9 9 0 0 0 9 9 9 9 0 0 0 6.2-2.5"/></svg>
+  Sem internet — alterações serão sincronizadas
+</div>
+
+<!-- ============ LOGIN ============ -->
+<div id="authScreen">
+  <div class="auth-logo">
+    <svg class="icon" style="width:32px;height:32px;stroke-width:2.6" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+  </div>
+  <h1 style="text-align:center">Marcado</h1>
+  <p style="text-align:center;color:var(--muted);font-size:14px;margin:6px 0 18px">Sua lista de compras inteligente</p>
+  <div id="authForm">
+    <label>E-mail</label>
+    <input type="email" id="authEmail" placeholder="voce@exemplo.com" autocomplete="email">
+    <label>Senha</label>
+    <input type="password" id="authPass" placeholder="Mínimo 6 caracteres" autocomplete="current-password">
+    <p class="auth-err" id="authErr"></p>
+    <button class="btn primary" id="btnLogin">Entrar</button>
+    <button class="link" id="btnSignupMode">Criar uma conta nova</button>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="appWrap">
+<header>
+  <div class="brand">
+    <div class="brand-mark"><svg class="icon sm" style="stroke-width:3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
+    <h1 id="headerTitle">Marcado</h1>
+  </div>
+  <div class="hbtns">
+    <button id="btnTheme" aria-label="Alternar tema">
+      <svg class="icon" id="themeIconSun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <svg class="icon" id="themeIconMoon" style="display:none" viewBox="0 0 24 24"><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ---- TELA LISTAS ---- -->
+<div class="screen on" id="scrListas">
+  <div class="tabs" id="tabsRow"></div>
+  <div class="summary" id="summaryCard">
+    <div><p class="s-label">No carrinho</p><p class="s-value" id="sumTotal">R$ 0,00</p></div>
+    <div style="text-align:right"><p class="s-label">Itens pegos</p><p class="s-value" id="sumCount">0 / 0</p></div>
+  </div>
+  <div id="itemsWrap"></div>
+  <button class="add-inline" id="btnAddItem">
+    <svg class="icon sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+    Adicionar item
+  </button>
+  <button class="finish" id="btnFinish" style="display:none">
+    <svg class="icon sm" viewBox="0 0 24 24"><path d="M6 6h15l-1.7 8.5a2 2 0 0 1-2 1.5H8.7a2 2 0 0 1-2-1.6L5 3H2"/><circle cx="9" cy="20" r="1.6"/><circle cx="17" cy="20" r="1.6"/></svg>
+    Finalizar compra
+  </button>
+</div>
+
+<!-- ---- TELA RELATÓRIO ---- -->
+<div class="screen" id="scrRelatorio">
+  <h2 style="margin-top:8px">Relatório de compras</h2>
+  <div class="months" id="monthChips"></div>
+  <div class="stat-grid">
+    <div class="stat"><p class="k">Gasto no mês</p><p class="v" id="repTotal">R$ 0,00</p></div>
+    <div class="stat"><p class="k">Compras feitas</p><p class="v" id="repCount">0</p></div>
+    <div class="stat"><p class="k">Média por compra</p><p class="v" id="repAvg">R$ 0,00</p></div>
+    <div class="stat"><p class="k">Itens comprados</p><p class="v" id="repItems">0</p></div>
+  </div>
+  <div class="panel">
+    <h2 style="font-size:14px;color:var(--muted);font-weight:600">Últimos 6 meses</h2>
+    <div class="bars" id="barsWrap"></div>
+  </div>
+  <div class="panel" id="repByList"></div>
+</div>
+
+<!-- ---- TELA HISTÓRICO ---- -->
+<div class="screen" id="scrHistorico">
+  <h2 style="margin-top:8px">Histórico de compras</h2>
+  <div id="histWrap"></div>
+</div>
+
+<!-- ---- TELA AJUSTES ---- -->
+<div class="screen" id="scrAjustes">
+  <h2 style="margin-top:8px">Ajustes</h2>
+  <label>Tema</label>
+  <div class="seg" id="themeSeg">
+    <button data-mode="auto">Automático</button>
+    <button data-mode="light">Claro</button>
+    <button data-mode="dark">Escuro</button>
+  </div>
+  <p class="hint">Claro usa roxo, escuro usa rosa 💜</p>
+  <label style="margin-top:22px">Conta</label>
+  <div class="panel" style="margin-bottom:8px">
+    <div class="row"><span style="color:var(--muted)">E-mail</span><span id="accEmail">—</span></div>
+  </div>
+  <button class="btn line danger-btn" id="btnLogout">Sair da conta</button>
+</div>
+
+<nav>
+  <button data-scr="scrListas" class="on">
+    <svg class="icon" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6.5l1 1L7 5.5M4 12.5l1 1 2-2M4 18.5l1 1 2-2"/></svg>
+    LISTAS
+  </button>
+  <button data-scr="scrRelatorio">
+    <svg class="icon" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+    RELATÓRIO
+  </button>
+  <button data-scr="scrHistorico">
+    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+    HISTÓRICO
+  </button>
+  <button data-scr="scrAjustes">
+    <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.9 2.9l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4.1 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.9-2.9l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4.1h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.9-2.9l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4.1 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.9 2.9l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4.1h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    AJUSTES
+  </button>
+</nav>
+</div>
+
+<!-- ---- SHEET: marcar/editar item ---- -->
+<div class="overlay" id="ovItem">
+  <div class="sheet">
+    <div class="grip"></div>
+    <div class="sheet-title"><h2 id="itNameTitle">Item</h2>
+      <button id="itClose"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <label>Nome</label><input id="itName">
+    <div class="qty-row">
+      <div><label>Tamanho / unidade</label><input id="itSize" placeholder="ex: 5kg, 1L"></div>
+      <div><label>Qtd. planejada</label><input id="itPlanned" type="number" inputmode="decimal" min="0" step="any"></div>
+    </div>
+    <div class="qty-row">
+      <div><label>Qtd. comprada</label><input id="itQty" type="number" inputmode="decimal" min="0" step="any"></div>
+      <div><label>Valor unitário (R$)</label><input id="itPrice" inputmode="decimal" placeholder="0,00"></div>
+    </div>
+    <div class="total-preview"><span>Total do item</span><span id="itTotal">R$ 0,00</span></div>
+    <button class="btn primary" id="itConfirm">Marcar como pego ✓</button>
+    <button class="btn line" id="itUnmark" style="display:none">Desmarcar</button>
+    <button class="btn txt-danger" id="itDelete">Excluir item</button>
+  </div>
+</div>
+
+<!-- ---- SHEET: adicionar item ---- -->
+<div class="overlay" id="ovAdd">
+  <div class="sheet">
+    <div class="grip"></div>
+    <div class="sheet-title"><h2>Adicionar item</h2>
+      <button id="adClose"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <label>Nome do produto</label><input id="adName" placeholder="ex: Arroz">
+    <div class="qty-row">
+      <div><label>Tamanho / unidade</label><input id="adSize" placeholder="ex: 5kg"></div>
+      <div><label>Qtd. planejada</label><input id="adPlanned" type="number" inputmode="decimal" min="0" step="any" value="1"></div>
+    </div>
+    <label style="display:flex;align-items:center;gap:9px;margin-top:16px;font-size:14.5px;color:var(--text)">
+      <input type="checkbox" id="adNow" style="width:20px;height:20px;accent-color:var(--accent)">
+      Já peguei agora (fora da lista)
+    </label>
+    <div id="adNowFields" style="display:none">
+      <div class="qty-row">
+        <div><label>Qtd. comprada</label><input id="adQty" type="number" inputmode="decimal" min="0" step="any" value="1"></div>
+        <div><label>Valor unitário (R$)</label><input id="adPrice" inputmode="decimal" placeholder="0,00"></div>
+      </div>
+    </div>
+    <button class="btn primary" id="adConfirm">Adicionar</button>
+  </div>
+</div>
+
+<!-- ---- SHEET: lista (renomear / compartilhar) ---- -->
+<div class="overlay" id="ovList">
+  <div class="sheet">
+    <div class="grip"></div>
+    <div class="sheet-title"><h2>Categoria</h2>
+      <button id="liClose"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <label>Nome</label><input id="liName">
+    <button class="btn primary" id="liSave">Salvar nome</button>
+    <label style="margin-top:20px">Compartilhar com outra pessoa</label>
+    <div class="code-box"><b id="liCode">—</b>
+      <button id="liCopy" style="color:var(--tint-text)"><svg class="icon" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+    </div>
+    <p class="hint">A outra pessoa toca em <b>+ &gt; Entrar com código</b> e digita este código. Vocês passam a editar a mesma lista juntos.</p>
+    <button class="btn line danger-btn" id="liDelete" style="margin-top:18px">Excluir categoria</button>
+  </div>
+</div>
+
+<!-- ---- SHEET: nova lista / entrar com código ---- -->
+<div class="overlay" id="ovNew">
+  <div class="sheet">
+    <div class="grip"></div>
+    <div class="sheet-title"><h2>Nova categoria</h2>
+      <button id="nwClose"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <label>Criar uma nova</label>
+    <input id="nwName" placeholder="ex: Mercado, Farmácia, Casa…">
+    <button class="btn primary" id="nwCreate">Criar</button>
+    <label style="margin-top:20px">Ou entrar numa lista compartilhada</label>
+    <input id="nwCode" placeholder="Código de convite (ex: MERC-7K2P)" style="text-transform:uppercase">
+    <button class="btn line" id="nwJoin">Entrar com código</button>
+  </div>
+</div>
+
+<!-- ---- SHEET: finalizar compra ---- -->
+<div class="overlay" id="ovFinish">
+  <div class="sheet">
+    <div class="grip"></div>
+    <div class="sheet-title"><h2>Finalizar compra</h2>
+      <button id="fiClose"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <p style="font-size:14.5px;color:var(--muted);margin:4px 0 0">A compra vai para o histórico e entra no relatório do mês. Os itens continuam na lista, desmarcados, prontos para a próxima compra.</p>
+    <div class="total-preview"><span id="fiCount">0 itens</span><span id="fiTotal">R$ 0,00</span></div>
+    <button class="btn primary" id="fiConfirm">Confirmar e salvar</button>
+    <button class="btn line" id="fiCancel">Cancelar</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+/* ============================================================
+   CONFIGURAÇÃO — cole aqui os dados do seu projeto Supabase
+   (Painel > Project Settings > API)
+   ============================================================ */
+const SUPABASE_URL = "https://qukihejenhzxvyoibwja.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1a2loZWplbmh6eHZ5b2lid2phIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzNTM2MTUsImV4cCI6MjEwMzkyOTYxNX0.xjn_d0ZrSZ-AnsjB8iu7pgP4g1dqb6-f8lN8yBCKntU";
+
+const $ = id => document.getElementById(id);
+const fmt = v => (Number(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const parseMoney = s => { const n = parseFloat(String(s??'').replace(/[R$\s.]/g,'').replace(',','.')); return isNaN(n)?0:n; };
+const parseMoneyLoose = s => { let t=String(s??'').trim().replace('R$','').trim(); if(t.includes(',')){t=t.replace(/\./g,'').replace(',','.');} const n=parseFloat(t); return isNaN(n)?0:n; };
+const uuid = () => crypto.randomUUID();
+const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+let sb=null, user=null, editingItem=null, editingList=null, selMonth=null, signupMode=false;
+let state = { lists:[], items:{}, purchases:[], activeListId:null };
+
+const configured = () => !SUPABASE_URL.startsWith('COLE_') && !SUPABASE_ANON_KEY.startsWith('COLE_');
+if (configured()) sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ---------------- tema ---------------- */
+function themeMode(){ return localStorage.getItem('marcado_theme') || 'auto'; }
+function applyTheme(){
+  const m = themeMode();
+  const dark = m==='dark' || (m==='auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.setAttribute('data-theme', dark?'dark':'light');
+  $('themeIconSun').style.display = dark?'none':'block';
+  $('themeIconMoon').style.display = dark?'block':'none';
+  document.querySelectorAll('#themeSeg button').forEach(b=>b.classList.toggle('on', b.dataset.mode===m));
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+$('btnTheme').onclick = () => {
+  const dark = document.documentElement.getAttribute('data-theme')==='dark';
+  localStorage.setItem('marcado_theme', dark?'light':'dark'); applyTheme(); saveThemeProfile();
+};
+document.querySelectorAll('#themeSeg button').forEach(b => b.onclick = () => {
+  localStorage.setItem('marcado_theme', b.dataset.mode); applyTheme(); saveThemeProfile();
+});
+function saveThemeProfile(){ if(user) push('profiles','upsert',{id:user.id, theme:themeMode()}); }
+applyTheme();
+
+/* ---------------- cache local + fila offline ---------------- */
+const cacheKey = () => 'marcado_cache_'+(user?user.id:'anon');
+const queueKey = () => 'marcado_queue_'+(user?user.id:'anon');
+function saveCache(){ try{ localStorage.setItem(cacheKey(), JSON.stringify(state)); }catch(e){} }
+function loadCache(){ try{ const c=localStorage.getItem(cacheKey()); if(c) state=JSON.parse(c); }catch(e){} }
+function getQueue(){ try{ return JSON.parse(localStorage.getItem(queueKey())||'[]'); }catch(e){ return []; } }
+function setQueue(q){ localStorage.setItem(queueKey(), JSON.stringify(q)); }
+
+async function push(table, op, payload){
+  if (!sb || !navigator.onLine){ enqueue(table,op,payload); return; }
+  try{
+    let r;
+    if (op==='upsert') r = await sb.from(table).upsert(payload);
+    else if (op==='insert') r = await sb.from(table).insert(payload);
+    else if (op==='delete') r = await sb.from(table).delete().eq('id', payload.id);
+    else if (op==='delete_member') r = await sb.from('list_members').delete().eq('list_id',payload.list_id).eq('user_id',payload.user_id);
+    if (r && r.error) throw r.error;
+  }catch(e){ console.warn('push fail, enfileirando', e.message||e); enqueue(table,op,payload); }
+}
+function enqueue(table,op,payload){ const q=getQueue(); q.push({table,op,payload}); setQueue(q); }
+async function flushQueue(){
+  if (!sb || !navigator.onLine) return;
+  const q = getQueue(); if (!q.length) return;
+  setQueue([]);
+  for (const j of q) await push(j.table, j.op, j.payload);
+  await fetchAll();
+}
+window.addEventListener('online', ()=>{ $('offlinePill').classList.remove('on'); flushQueue(); });
+window.addEventListener('offline', ()=> $('offlinePill').classList.add('on'));
+if (!navigator.onLine) $('offlinePill').classList.add('on');
+
+/* ---------------- autenticação ---------------- */
+$('btnSignupMode').onclick = () => {
+  signupMode = !signupMode;
+  $('btnLogin').textContent = signupMode ? 'Criar conta' : 'Entrar';
+  $('btnSignupMode').textContent = signupMode ? 'Já tenho conta — entrar' : 'Criar uma conta nova';
+  $('authErr').textContent='';
+};
+$('btnLogin').onclick = async () => {
+  $('authErr').textContent='';
+  if (!configured()){ $('authErr').textContent='Configure SUPABASE_URL e ANON_KEY no index.html'; return; }
+  const email=$('authEmail').value.trim(), pass=$('authPass').value;
+  if (!email || pass.length<6){ $('authErr').textContent='Preencha e-mail e senha (mín. 6 caracteres)'; return; }
+  $('btnLogin').textContent='Aguarde…';
+  try{
+    let res;
+    if (signupMode){
+      res = await sb.auth.signUp({email, password:pass});
+      if (res.error) throw res.error;
+      if (!res.data.session){ $('authErr').textContent='Conta criada! Confirme no seu e-mail e depois entre.'; resetLoginBtn(); return; }
+    } else {
+      res = await sb.auth.signInWithPassword({email, password:pass});
+      if (res.error) throw res.error;
+    }
+    await start(res.data.session.user);
+  }catch(e){
+    $('authErr').textContent = traduzErro(e.message);
+  }
+  resetLoginBtn();
+};
+function resetLoginBtn(){ $('btnLogin').textContent = signupMode?'Criar conta':'Entrar'; }
+function traduzErro(m){
+  if (/invalid login/i.test(m)) return 'E-mail ou senha incorretos';
+  if (/already registered/i.test(m)) return 'Este e-mail já tem conta — use "Entrar"';
+  if (/rate limit/i.test(m)) return 'Muitas tentativas, aguarde um pouco';
+  return m;
+}
+$('btnLogout').onclick = async () => { if(sb) await sb.auth.signOut(); location.reload(); };
+
+/* ---------------- carregamento ---------------- */
+async function fetchAll(){
+  if (!sb || !navigator.onLine) return;
+  try{
+    const L = await sb.from('lists').select('*').order('position').order('created_at');
+    if (L.error) throw L.error;
+    state.lists = L.data||[];
+    const ids = state.lists.map(l=>l.id);
+    if (ids.length){
+      const I = await sb.from('items').select('*').in('list_id', ids).order('position').order('created_at');
+      if (!I.error){ state.items={}; (I.data||[]).forEach(it=>{ (state.items[it.list_id]=state.items[it.list_id]||[]).push(it); }); }
+    } else state.items={};
+    const P = await sb.from('purchases').select('*').order('finished_at',{ascending:false}).limit(500);
+    if (!P.error) state.purchases = P.data||[];
+    if (!state.lists.find(l=>l.id===state.activeListId)) state.activeListId = state.lists[0]?.id||null;
+    saveCache(); renderAll(); subscribeRealtime();
+  }catch(e){ console.warn('fetchAll', e.message||e); }
+}
+
+let channel=null;
+function subscribeRealtime(){
+  if (!sb || !navigator.onLine) return;
+  if (channel) sb.removeChannel(channel);
+  channel = sb.channel('marcado-sync')
+    .on('postgres_changes',{event:'*',schema:'public',table:'items'}, ()=> softRefresh())
+    .on('postgres_changes',{event:'*',schema:'public',table:'lists'}, ()=> softRefresh())
+    .subscribe();
+}
+let refreshT=null;
+function softRefresh(){ clearTimeout(refreshT); refreshT=setTimeout(fetchAll, 400); }
+
+async function start(u){
+  user = u;
+  $('authScreen').classList.remove('on');
+  $('appWrap').classList.add('on');
+  $('accEmail').textContent = u.email||'—';
+  loadCache(); renderAll();
+  if (navigator.onLine && sb){
+    const pr = await sb.from('profiles').select('*').eq('id',u.id).maybeSingle();
+    if (!pr.error && !pr.data) await push('profiles','upsert',{id:u.id, theme:themeMode()});
+    else if (pr.data && pr.data.theme && !localStorage.getItem('marcado_theme')){ localStorage.setItem('marcado_theme', pr.data.theme); applyTheme(); }
+    await flushQueue();
+    await fetchAll();
+    if (!state.lists.length) await createList('Mercado');
+  }
+}
+
+/* ---------------- listas / abas ---------------- */
+function genCode(name){
+  const base = (name||'LISTA').normalize('NFD').replace(/[^a-zA-Z]/g,'').toUpperCase().padEnd(4,'X').slice(0,4);
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let r='';
+  for(let i=0;i<4;i++) r+=chars[Math.floor(Math.random()*chars.length)];
+  return base+'-'+r;
+}
+async function createList(name){
+  const l = { id:uuid(), name, owner:user.id, invite_code:genCode(name), position:state.lists.length, created_at:new Date().toISOString() };
+  state.lists.push(l); state.items[l.id]=[]; state.activeListId=l.id;
+  saveCache(); renderAll();
+  await push('lists','insert',{id:l.id,name:l.name,owner:l.owner,invite_code:l.invite_code,position:l.position});
+  await push('list_members','insert',{list_id:l.id,user_id:user.id});
+}
+function activeList(){ return state.lists.find(l=>l.id===state.activeListId); }
+function activeItems(){ return state.items[state.activeListId]||[]; }
+
+function renderTabs(){
+  const w=$('tabsRow'); w.innerHTML='';
+  state.lists.forEach(l=>{
+    const b=document.createElement('button');
+    b.className='tab'+(l.id===state.activeListId?' active':'');
+    b.textContent=l.name;
+    if (l.id===state.activeListId){
+      const s=document.createElementNS('http://www.w3.org/2000/svg','svg');
+      s.setAttribute('viewBox','0 0 24 24'); s.setAttribute('class','icon sm'); s.style.width='14px'; s.style.height='14px';
+      s.innerHTML='<path d="M4 20l4-1 11-11a2.1 2.1 0 0 0-3-3L5 16l-1 4z"/>';
+      b.appendChild(s);
+      b.onclick=()=>openListSheet(l);
+    } else b.onclick=()=>{ state.activeListId=l.id; saveCache(); renderAll(); };
+    w.appendChild(b);
+  });
+  const add=document.createElement('button');
+  add.className='tab ghost'; add.textContent='+';
+  add.onclick=()=>{ $('nwName').value=''; $('nwCode').value=''; open('ovNew'); };
+  w.appendChild(add);
+}
+
+function openListSheet(l){
+  editingList=l;
+  $('liName').value=l.name;
+  $('liCode').textContent=l.invite_code;
+  $('liDelete').textContent = l.owner===user.id ? 'Excluir categoria' : 'Sair desta lista';
+  open('ovList');
+}
+$('liSave').onclick=async()=>{
+  if(!editingList) return;
+  const n=$('liName').value.trim(); if(!n) return;
+  editingList.name=n; saveCache(); renderAll(); close('ovList');
+  await push('lists','upsert',{id:editingList.id,name:n,owner:editingList.owner,invite_code:editingList.invite_code});
+};
+$('liCopy').onclick=()=>{ navigator.clipboard?.writeText($('liCode').textContent); $('liCopy').style.opacity=.4; setTimeout(()=>$('liCopy').style.opacity=1,600); };
+$('liDelete').onclick=async()=>{
+  if(!editingList) return;
+  const own = editingList.owner===user.id;
+  if(!confirm(own?'Excluir esta categoria e todos os itens dela?':'Sair desta lista compartilhada?')) return;
+  const id=editingList.id;
+  state.lists=state.lists.filter(x=>x.id!==id); delete state.items[id];
+  if(state.activeListId===id) state.activeListId=state.lists[0]?.id||null;
+  saveCache(); renderAll(); close('ovList');
+  if (own) await push('lists','delete',{id});
+  else await push('list_members','delete_member',{list_id:id,user_id:user.id});
+};
+$('nwCreate').onclick=async()=>{ const n=$('nwName').value.trim(); if(!n) return; close('ovNew'); await createList(n); };
+$('nwJoin').onclick=async()=>{
+  const code=$('nwCode').value.trim().toUpperCase(); if(!code) return;
+  if(!navigator.onLine){ alert('Entrar com código precisa de internet.'); return; }
+  const r=await sb.rpc('join_list',{code});
+  if(r.error){ alert('Código não encontrado. Confira e tente de novo.'); return; }
+  close('ovNew'); state.activeListId=r.data; await fetchAll();
+};
+
+/* ---------------- itens ---------------- */
+function renderItems(){
+  const w=$('itemsWrap'); w.innerHTML='';
+  const its=activeItems();
+  let total=0, done=0;
+  its.forEach(it=>{ if(it.bought){ done++; total+=(it.bought_qty||0)*(it.unit_price||0);} });
+  $('sumTotal').textContent=fmt(total);
+  $('sumCount').textContent=done+' / '+its.length;
+  $('btnFinish').style.display = done>0?'flex':'none';
+  if(!its.length){
+    w.innerHTML='<div class="empty"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6h15l-1.7 8.5a2 2 0 0 1-2 1.5H8.7a2 2 0 0 1-2-1.6L5 3H2"/><circle cx="9" cy="20" r="1.6"/><circle cx="17" cy="20" r="1.6"/></svg>Lista vazia.<br>Toque em <b>Adicionar item</b> para começar.</div>';
+    return;
+  }
+  const sorted=[...its].sort((a,b)=>(a.bought?1:0)-(b.bought?1:0));
+  sorted.forEach(it=>{
+    const b=document.createElement('button');
+    b.className='item'+(it.bought?' done':'');
+    const size=it.size?(' — '+it.size):'';
+    const sub = it.bought
+      ? `${it.bought_qty} un × ${fmt(it.unit_price)} = <b>${fmt(it.bought_qty*it.unit_price)}</b>`
+      : `Planejado: ${it.planned_qty} un` + (it.last_price?` · último preço ${fmt(it.last_price)}`:'');
+    b.innerHTML=`<span class="chk">${it.bought?'<svg class="icon sm" style="stroke-width:3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>':''}</span>
+      <span class="item-body"><p class="item-name">${esc(it.name)}${esc(size)}${it.extra?'<span class="badge-extra">extra</span>':''}</p>
+      <p class="item-sub">${sub}</p></span>
+      <svg class="icon sm chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>`;
+    b.onclick=()=>openItemSheet(it);
+    w.appendChild(b);
+  });
+}
+const esc = s => String(s??'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+
+function openItemSheet(it){
+  editingItem=it;
+  $('itNameTitle').textContent=it.bought?'Editar item pego':'Marcar item';
+  $('itName').value=it.name; $('itSize').value=it.size||'';
+  $('itPlanned').value=it.planned_qty;
+  $('itQty').value=it.bought?it.bought_qty:it.planned_qty;
+  $('itPrice').value=(it.bought?it.unit_price:it.last_price)?String((it.bought?it.unit_price:it.last_price)).replace('.',','):'';
+  $('itUnmark').style.display=it.bought?'block':'none';
+  $('itConfirm').textContent=it.bought?'Salvar alterações':'Marcar como pego ✓';
+  updateItemTotal(); open('ovItem');
+}
+function updateItemTotal(){
+  const t=(parseFloat($('itQty').value)||0)*parseMoneyLoose($('itPrice').value);
+  $('itTotal').textContent=fmt(t);
+}
+$('itQty').oninput=updateItemTotal; $('itPrice').oninput=updateItemTotal;
+$('itConfirm').onclick=async()=>{
+  if(!editingItem) return;
+  const it=editingItem;
+  it.name=$('itName').value.trim()||it.name;
+  it.size=$('itSize').value.trim();
+  it.planned_qty=parseFloat($('itPlanned').value)||1;
+  it.bought=true;
+  it.bought_qty=parseFloat($('itQty').value)||it.planned_qty;
+  it.unit_price=parseMoneyLoose($('itPrice').value);
+  it.last_price=it.unit_price||it.last_price;
+  saveCache(); renderItems(); close('ovItem');
+  await pushItem(it);
+};
+$('itUnmark').onclick=async()=>{
+  if(!editingItem) return;
+  editingItem.bought=false; editingItem.bought_qty=0;
+  saveCache(); renderItems(); close('ovItem');
+  await pushItem(editingItem);
+};
+$('itDelete').onclick=async()=>{
+  if(!editingItem) return;
+  if(!confirm('Excluir "'+editingItem.name+'"?')) return;
+  const id=editingItem.id;
+  state.items[state.activeListId]=activeItems().filter(x=>x.id!==id);
+  saveCache(); renderItems(); close('ovItem');
+  await push('items','delete',{id});
+};
+function pushItem(it){
+  return push('items','upsert',{id:it.id,list_id:it.list_id,name:it.name,size:it.size,
+    planned_qty:it.planned_qty,bought:it.bought,bought_qty:it.bought_qty,
+    unit_price:it.unit_price,last_price:it.last_price,extra:it.extra,position:it.position,
+    updated_at:new Date().toISOString()});
+}
+
+$('btnAddItem').onclick=()=>{
+  if(!activeList()){ alert('Crie uma categoria primeiro (botão +).'); return; }
+  $('adName').value=''; $('adSize').value=''; $('adPlanned').value='1';
+  $('adNow').checked=false; $('adNowFields').style.display='none';
+  $('adQty').value='1'; $('adPrice').value='';
+  open('ovAdd'); setTimeout(()=>$('adName').focus(),150);
+};
+$('adNow').onchange=()=>{ $('adNowFields').style.display=$('adNow').checked?'block':'none'; };
+$('adConfirm').onclick=async()=>{
+  const n=$('adName').value.trim(); if(!n){ $('adName').focus(); return; }
+  const now=$('adNow').checked;
+  const it={ id:uuid(), list_id:state.activeListId, name:n, size:$('adSize').value.trim(),
+    planned_qty:parseFloat($('adPlanned').value)||1,
+    bought:now, bought_qty:now?(parseFloat($('adQty').value)||1):0,
+    unit_price:now?parseMoneyLoose($('adPrice').value):0,
+    last_price:now?parseMoneyLoose($('adPrice').value):0,
+    extra:now, position:activeItems().length, created_at:new Date().toISOString() };
+  (state.items[state.activeListId]=state.items[state.activeListId]||[]).push(it);
+  saveCache(); renderItems(); close('ovAdd');
+  await pushItem(it);
+};
+
+/* ---------------- finalizar compra ---------------- */
+$('btnFinish').onclick=()=>{
+  const bought=activeItems().filter(i=>i.bought);
+  const total=bought.reduce((s,i)=>s+i.bought_qty*i.unit_price,0);
+  $('fiCount').textContent=bought.length+(bought.length===1?' item':' itens');
+  $('fiTotal').textContent=fmt(total);
+  open('ovFinish');
+};
+$('fiConfirm').onclick=async()=>{
+  const l=activeList(); if(!l) return;
+  const bought=activeItems().filter(i=>i.bought);
+  const total=bought.reduce((s,i)=>s+i.bought_qty*i.unit_price,0);
+  const p={ id:uuid(), list_id:l.id, list_name:l.name, user_id:user.id,
+    total, item_count:bought.length,
+    items:bought.map(i=>({name:i.name,size:i.size,qty:i.bought_qty,price:i.unit_price,total:i.bought_qty*i.unit_price,extra:i.extra})),
+    finished_at:new Date().toISOString() };
+  state.purchases.unshift(p);
+  for(const i of activeItems()){ if(i.bought){ i.bought=false; i.bought_qty=0; i.extra=false; } }
+  saveCache(); renderAll(); close('ovFinish');
+  await push('purchases','insert',p);
+  for(const i of activeItems()) await pushItem(i);
+};
+$('fiCancel').onclick=()=>close('ovFinish');
+
+/* ---------------- relatório ---------------- */
+function monthKey(d){ const x=new Date(d); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0'); }
+function monthLabel(k){ const [y,m]=k.split('-'); return MESES[+m-1]+'/'+y.slice(2); }
+function renderReport(){
+  const byM={};
+  state.purchases.forEach(p=>{ const k=monthKey(p.finished_at); (byM[k]=byM[k]||[]).push(p); });
+  const keys=Object.keys(byM).sort().reverse();
+  const chips=$('monthChips'); chips.innerHTML='';
+  if(!keys.length){
+    chips.innerHTML='<span class="hint">Finalize sua primeira compra para ver o relatório 📊</span>';
+    ['repTotal','repAvg'].forEach(i=>$(i).textContent=fmt(0));
+    ['repCount','repItems'].forEach(i=>$(i).textContent='0');
+    $('barsWrap').innerHTML=''; $('repByList').innerHTML='<p class="hint">Sem dados ainda.</p>';
+    return;
+  }
+  if(!selMonth || !byM[selMonth]) selMonth=keys[0];
+  keys.forEach(k=>{
+    const b=document.createElement('button');
+    b.className='tab'+(k===selMonth?' active':''); b.textContent=monthLabel(k);
+    b.onclick=()=>{ selMonth=k; renderReport(); };
+    chips.appendChild(b);
+  });
+  const ps=byM[selMonth];
+  const total=ps.reduce((s,p)=>s+Number(p.total),0);
+  const items=ps.reduce((s,p)=>s+p.item_count,0);
+  $('repTotal').textContent=fmt(total);
+  $('repCount').textContent=ps.length;
+  $('repAvg').textContent=fmt(total/ps.length);
+  $('repItems').textContent=items;
+
+  const bw=$('barsWrap'); bw.innerHTML='';
+  const now=new Date(); const last6=[];
+  for(let i=5;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); last6.push(monthKey(d)); }
+  const vals=last6.map(k=>(byM[k]||[]).reduce((s,p)=>s+Number(p.total),0));
+  const max=Math.max(...vals,1);
+  last6.forEach((k,i)=>{
+    const col=document.createElement('div'); col.className='barcol';
+    const bar=document.createElement('div'); bar.className='bar'+(k===selMonth?'':' dim');
+    bar.style.height=Math.max(4,Math.round(vals[i]/max*100))+'px';
+    bar.title=fmt(vals[i]);
+    const lb=document.createElement('span'); lb.className='bar-lbl'; lb.textContent=monthLabel(k);
+    col.appendChild(bar); col.appendChild(lb);
+    col.onclick=()=>{ if(byM[k]){ selMonth=k; renderReport(); } };
+    bw.appendChild(col);
+  });
+
+  const byL={};
+  ps.forEach(p=>{ byL[p.list_name]=(byL[p.list_name]||0)+Number(p.total); });
+  const rl=$('repByList');
+  rl.innerHTML='<h2 style="font-size:14px;color:var(--muted);font-weight:600">Gasto por categoria</h2>'+
+    Object.entries(byL).sort((a,b)=>b[1]-a[1])
+      .map(([n,v])=>`<div class="row"><span>${esc(n)}</span><b>${fmt(v)}</b></div>`).join('');
+}
+
+/* ---------------- histórico ---------------- */
+function renderHistory(){
+  const w=$('histWrap'); w.innerHTML='';
+  if(!state.purchases.length){
+    w.innerHTML='<div class="empty"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>Nenhuma compra finalizada ainda.</div>';
+    return;
+  }
+  state.purchases.forEach(p=>{
+    const d=new Date(p.finished_at);
+    const b=document.createElement('button'); b.className='hist';
+    b.innerHTML=`<div class="hist-top"><span><b>${esc(p.list_name)}</b>
+      <span style="color:var(--muted);font-size:13px"> · ${d.toLocaleDateString('pt-BR')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}</span></span>
+      <b style="color:var(--accent)">${fmt(p.total)}</b></div>
+      <p style="margin:2px 0 0;font-size:12.5px;color:var(--muted)">${p.item_count} ${p.item_count===1?'item':'itens'} — toque para ver</p>
+      <div class="hist-items">${(p.items||[]).map(i=>`<div class="row"><span>${esc(i.name)}${i.size?' — '+esc(i.size):''} <span style="color:var(--muted)">(${i.qty}×${fmt(i.price)})</span></span><span>${fmt(i.total)}</span></div>`).join('')}</div>`;
+    b.onclick=()=>b.classList.toggle('open');
+    w.appendChild(b);
+  });
+}
+
+/* ---------------- navegação / sheets ---------------- */
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  b.classList.add('on'); $(b.dataset.scr).classList.add('on');
+  if(b.dataset.scr==='scrRelatorio') renderReport();
+  if(b.dataset.scr==='scrHistorico') renderHistory();
+});
+function open(id){ $(id).classList.add('on'); }
+function close(id){ $(id).classList.remove('on'); }
+['ovItem','ovAdd','ovList','ovNew','ovFinish'].forEach(id=>{
+  $(id).addEventListener('click',e=>{ if(e.target.id===id) close(id); });
+});
+$('itClose').onclick=()=>close('ovItem'); $('adClose').onclick=()=>close('ovAdd');
+$('liClose').onclick=()=>close('ovList'); $('nwClose').onclick=()=>close('ovNew');
+$('fiClose').onclick=()=>close('ovFinish');
+
+function renderAll(){ renderTabs(); renderItems(); }
+
+/* ---------------- inicialização ---------------- */
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+(async()=>{
+  if (!configured()){ $('authScreen').classList.add('on'); $('authErr').textContent='Configure SUPABASE_URL e ANON_KEY no index.html'; return; }
+  const { data } = await sb.auth.getSession();
+  if (data && data.session) await start(data.session.user);
+  else $('authScreen').classList.add('on');
+})();
+</script>
+</body>
+</html>
