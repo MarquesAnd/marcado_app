@@ -287,7 +287,11 @@ nav button.on{color:var(--accent);}
 <!-- ---- TELA AJUSTES ---- -->
 <div class="screen" id="scrAjustes">
   <h2 style="margin-top:8px">Ajustes</h2>
-  <label>Conta</label>
+  <label>Seu nome de usuário</label>
+  <input id="setName" placeholder="ex: André" maxlength="20">
+  <button class="btn primary" id="setNameSave">Salvar nome</button>
+  <p class="hint">Nas listas compartilhadas, os itens mostram quem adicionou cada um.</p>
+  <label style="margin-top:18px">Conta</label>
   <div class="panel" style="margin-bottom:8px">
     <div class="row"><span style="color:var(--muted)">E-mail</span><span id="accEmail">—</span></div>
   </div>
@@ -430,9 +434,12 @@ const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov'
 let sb=null, user=null, editingItem=null, editingList=null, selMonth=null, signupMode=false;
 let state = { lists:[], items:{}, purchases:[], activeListId:null };
 const dirty = {};
-const DIRTY_MS = 20000;
-const isDirty = id => dirty[id] && (Date.now()-dirty[id]) < DIRTY_MS;
+const isDirty = id => !!dirty[id];
 const markDirty = id => { dirty[id]=Date.now(); };
+const clearDirtySoon = id => setTimeout(()=>{ delete dirty[id]; }, 2500);
+const ts = x => Date.parse(x && x.created_at || '') || 0;
+const byCreation = (a,b) => ts(a)-ts(b) || a.id.localeCompare(b.id);
+const myName = () => localStorage.getItem('marcado_name') || '';
 
 const configured = () => !SUPABASE_URL.startsWith('COLE_') && !SUPABASE_ANON_KEY.startsWith('COLE_');
 if (configured()) sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:false } });
@@ -448,7 +455,7 @@ function getQueue(){ try{ return JSON.parse(localStorage.getItem(queueKey())||'[
 function setQueue(q){ localStorage.setItem(queueKey(), JSON.stringify(q)); }
 
 async function push(table, op, payload){
-  if (!sb || !navigator.onLine){ enqueue(table,op,payload); return; }
+  if (!sb || !navigator.onLine){ enqueue(table,op,payload); return false; }
   try{
     let r;
     if (op==='upsert') r = await sb.from(table).upsert(payload);
@@ -456,14 +463,15 @@ async function push(table, op, payload){
     else if (op==='delete') r = await sb.from(table).delete().eq('id', payload.id);
     else if (op==='delete_member') r = await sb.from('list_members').delete().eq('list_id',payload.list_id).eq('user_id',payload.user_id);
     if (r && r.error) throw r.error;
-  }catch(e){ console.warn('push fail, enfileirando', e.message||e); enqueue(table,op,payload); }
+    return true;
+  }catch(e){ console.warn('push fail, enfileirando', e.message||e); enqueue(table,op,payload); return false; }
 }
 function enqueue(table,op,payload){ const q=getQueue(); q.push({table,op,payload}); setQueue(q); }
 async function flushQueue(){
   if (!sb || !navigator.onLine) return;
   const q = getQueue(); if (!q.length) return;
   setQueue([]);
-  for (const j of q) await push(j.table, j.op, j.payload);
+  for (const j of q){ const ok = await push(j.table, j.op, j.payload); if (ok && j.payload && j.payload.id) clearDirtySoon(j.payload.id); }
   await fetchAll();
 }
 window.addEventListener('online', async ()=>{ $('offlinePill').classList.remove('on'); try{ await sb?.auth.getSession(); }catch(e){} flushQueue(); });
@@ -506,6 +514,13 @@ function traduzErro(m){
   if (/rate limit/i.test(m)) return 'Muitas tentativas, aguarde um pouco';
   return m;
 }
+$('setNameSave').onclick = async () => {
+  const n=$('setName').value.trim();
+  localStorage.setItem('marcado_name', n);
+  lastSig=''; renderItems();
+  $('setNameSave').textContent='Salvo ✓'; setTimeout(()=>$('setNameSave').textContent='Salvar nome',1200);
+  if (user) await push('profiles','upsert',{id:user.id, name:n});
+};
 $('btnLogout').onclick = async () => { localStorage.removeItem('marcado_user'); if(sb) await sb.auth.signOut(); location.reload(); };
 
 /* ---------------- carregamento ---------------- */
@@ -528,8 +543,8 @@ async function fetchAll(){
             if (isDirty(si.id)){ const loc = locais.find(x=>x.id===si.id); return loc||si; }
             return si;
           });
-          const soLocais = locais.filter(x=>isDirty(x.id) && !doServidor.find(y=>y.id===x.id));
-          merged[lid] = doServidor.concat(soLocais).sort((a,b)=> (a.created_at||'').localeCompare(b.created_at||'') || a.id.localeCompare(b.id));
+          const soLocais = locais.filter(x=> (isDirty(x.id) || Date.now()-ts(x) < 90000) && !doServidor.find(y=>y.id===x.id));
+          merged[lid] = doServidor.concat(soLocais).sort(byCreation);
         });
         state.items = merged;
       }
@@ -562,7 +577,7 @@ function applyItemChange(p){
     const arr = state.items[rec.list_id]=state.items[rec.list_id]||[];
     const i = arr.findIndex(x=>x.id===rec.id);
     if (i>=0) arr[i]=rec; else arr.push(rec);
-    arr.sort((a,b)=> (a.created_at||'').localeCompare(b.created_at||'') || a.id.localeCompare(b.id));
+    arr.sort(byCreation);
   }
   saveCache();
   if (!rec.list_id || rec.list_id===state.activeListId) renderItems();
@@ -577,7 +592,9 @@ async function start(u){
   loadCache(); renderAll();
   if (navigator.onLine && sb){
     const pr = await sb.from('profiles').select('*').eq('id',u.id).maybeSingle();
-    if (!pr.error && !pr.data) await push('profiles','upsert',{id:u.id});
+    if (!pr.error && !pr.data) await push('profiles','upsert',{id:u.id, name:myName()});
+    else if (pr.data && pr.data.name && !localStorage.getItem('marcado_name')) localStorage.setItem('marcado_name', pr.data.name);
+    $('setName').value = myName();
     await flushQueue();
     await fetchAll();
     if (!state.lists.length) await createList('Mercado');
@@ -657,9 +674,14 @@ $('nwJoin').onclick=async()=>{
 };
 
 /* ---------------- itens ---------------- */
+let lastSig='';
 function renderItems(){
-  const w=$('itemsWrap'); w.innerHTML='';
+  const w=$('itemsWrap');
   const its=activeItems();
+  const sig=state.activeListId+'|'+JSON.stringify(its.map(i=>[i.id,i.name,i.size,i.planned_qty,i.bought,i.bought_qty,i.unit_price,i.added_by]));
+  if (sig===lastSig) return;
+  lastSig=sig;
+  w.innerHTML='';
   let total=0, done=0;
   its.forEach(it=>{ if(it.bought){ done++; total+=(it.bought_qty||0)*(it.unit_price||0);} });
   $('sumTotal').textContent=fmt(total);
@@ -669,14 +691,15 @@ function renderItems(){
     w.innerHTML='<div class="empty"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6h15l-1.7 8.5a2 2 0 0 1-2 1.5H8.7a2 2 0 0 1-2-1.6L5 3H2"/><circle cx="9" cy="20" r="1.6"/><circle cx="17" cy="20" r="1.6"/></svg>Lista vazia.<br>Toque em <b>Adicionar item</b> para começar.</div>';
     return;
   }
-  const sorted=[...its].sort((a,b)=> ((a.bought?1:0)-(b.bought?1:0)) || (a.created_at||'').localeCompare(b.created_at||'') || a.id.localeCompare(b.id));
+  const sorted=[...its].sort((a,b)=> ((a.bought?1:0)-(b.bought?1:0)) || byCreation(a,b));
   sorted.forEach(it=>{
     const b=document.createElement('button');
     b.className='item'+(it.bought?' done':'');
     const size=it.size?(' — '+it.size):'';
-    const sub = it.bought
+    const autor = (it.added_by && it.added_by!==myName()) ? ` · por ${esc(it.added_by)}` : '';
+    const sub = (it.bought
       ? `${it.bought_qty} un × ${fmt(it.unit_price)} = <b>${fmt(it.bought_qty*it.unit_price)}</b>`
-      : `Planejado: ${it.planned_qty} un` + (it.last_price?` · último preço ${fmt(it.last_price)}`:'');
+      : `Planejado: ${it.planned_qty} un` + (it.last_price?` · último preço ${fmt(it.last_price)}`:'')) + autor;
     b.innerHTML=`<span class="chk">${it.bought?'<svg class="icon sm" style="stroke-width:3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>':''}</span>
       <span class="item-body"><p class="item-name">${esc(it.name)}${esc(size)}${it.extra?'<span class="badge-extra">extra</span>':''}</p>
       <p class="item-sub">${sub}</p></span>
@@ -731,12 +754,14 @@ $('itDelete').onclick=async()=>{
   saveCache(); renderItems(); close('ovItem');
   await push('items','delete',{id});
 };
-function pushItem(it){
+async function pushItem(it){
   markDirty(it.id);
-  return push('items','upsert',{id:it.id,list_id:it.list_id,name:it.name,size:it.size,
+  const ok = await push('items','upsert',{id:it.id,list_id:it.list_id,name:it.name,size:it.size,
     planned_qty:it.planned_qty,bought:it.bought,bought_qty:it.bought_qty,
     unit_price:it.unit_price,last_price:it.last_price,extra:it.extra,position:it.position,
-    updated_at:new Date().toISOString()});
+    added_by:it.added_by||'',updated_at:new Date().toISOString()});
+  if (ok) clearDirtySoon(it.id);
+  return ok;
 }
 
 $('btnAddItem').onclick=()=>{
@@ -755,7 +780,7 @@ $('adConfirm').onclick=async()=>{
     bought:now, bought_qty:now?(parseFloat($('adQty').value)||1):0,
     unit_price:now?parseMoneyLoose($('adPrice').value):0,
     last_price:now?parseMoneyLoose($('adPrice').value):0,
-    extra:now, position:activeItems().length, created_at:new Date().toISOString() };
+    extra:now, position:activeItems().length, added_by:myName(), created_at:new Date().toISOString() };
   (state.items[state.activeListId]=state.items[state.activeListId]||[]).push(it);
   saveCache(); renderItems(); close('ovAdd');
   await pushItem(it);
@@ -876,7 +901,7 @@ $('itClose').onclick=()=>close('ovItem'); $('adClose').onclick=()=>close('ovAdd'
 $('liClose').onclick=()=>close('ovList'); $('nwClose').onclick=()=>close('ovNew');
 $('fiClose').onclick=()=>close('ovFinish');
 
-function renderAll(){ renderTabs(); renderItems(); }
+function renderAll(){ renderTabs(); lastSig=''; renderItems(); }
 
 /* ---------------- inicialização ---------------- */
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
