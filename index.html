@@ -336,7 +336,10 @@ nav button.on{color:var(--accent);}
   <div class="sheet">
     <div class="grip"></div>
     <div class="sheet-title"><h2 id="itNameTitle">Item</h2>
-      <button id="itClose"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div style="display:flex;gap:16px;align-items:center">
+        <button id="itSaveIcon" aria-label="Salvar alterações" style="color:var(--success)"><svg class="icon" style="stroke-width:2.6" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></button>
+        <button id="itClose"><svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
     </div>
     <label>Nome</label><input id="itName">
     <div class="qty-row">
@@ -786,6 +789,21 @@ function updateItemTotal(){
   $('itTotal').textContent=fmt(t);
 }
 $('itQty').oninput=updateItemTotal; $('itPrice').oninput=updateItemTotal;
+$('itSaveIcon').onclick=async()=>{
+  if(!editingItem) return;
+  const it=editingItem;
+  it.name=$('itName').value.trim()||it.name;
+  it.size=$('itSize').value.trim();
+  it.category=$('itCat').value.trim();
+  it.planned_qty=parseFloat($('itPlanned').value)||1;
+  if(it.bought){
+    it.bought_qty=parseFloat($('itQty').value)||it.bought_qty;
+    it.unit_price=parseMoneyLoose($('itPrice').value);
+    it.last_price=it.unit_price||it.last_price;
+  }
+  saveCache(); renderItems(); close('ovItem');
+  await pushItem(it);
+};
 $('itConfirm').onclick=async()=>{
   if(!editingItem) return;
   const it=editingItem;
