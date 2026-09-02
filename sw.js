@@ -1,4 +1,4 @@
-const CACHE = 'marcado-v4';
+const CACHE = 'marcado-v5';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -14,12 +14,13 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  if (!e.request.url.startsWith('http')) return; // ignora chrome-extension:// etc.
   e.respondWith(
     caches.match(e.request, { ignoreSearch: true }).then(cached => {
       const fetched = fetch(e.request).then(res => {
-        if (res && res.ok) {
+        if (res && res.ok && (res.type === 'basic' || res.type === 'cors')) {
           const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, copy));
+          caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
         }
         return res;
       }).catch(() => cached);
