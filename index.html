@@ -458,7 +458,7 @@ let sb=null, user=null, editingItem=null, editingList=null, selMonth=null, signu
 let state = { lists:[], items:{}, purchases:[], activeListId:null };
 
 const configured = () => !SUPABASE_URL.startsWith('COLE_') && !SUPABASE_ANON_KEY.startsWith('COLE_');
-if (configured()) sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+if (configured()) sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:false } });
 
 /* ---------------- tema ---------------- */
 function themeMode(){ return localStorage.getItem('marcado_theme') || 'auto'; }
@@ -508,7 +508,7 @@ async function flushQueue(){
   for (const j of q) await push(j.table, j.op, j.payload);
   await fetchAll();
 }
-window.addEventListener('online', ()=>{ $('offlinePill').classList.remove('on'); flushQueue(); });
+window.addEventListener('online', async ()=>{ $('offlinePill').classList.remove('on'); try{ await sb?.auth.getSession(); }catch(e){} flushQueue(); });
 window.addEventListener('offline', ()=> $('offlinePill').classList.add('on'));
 if (!navigator.onLine) $('offlinePill').classList.add('on');
 
@@ -548,7 +548,7 @@ function traduzErro(m){
   if (/rate limit/i.test(m)) return 'Muitas tentativas, aguarde um pouco';
   return m;
 }
-$('btnLogout').onclick = async () => { if(sb) await sb.auth.signOut(); location.reload(); };
+$('btnLogout').onclick = async () => { localStorage.removeItem('marcado_user'); if(sb) await sb.auth.signOut(); location.reload(); };
 
 /* ---------------- carregamento ---------------- */
 async function fetchAll(){
@@ -583,6 +583,7 @@ function softRefresh(){ clearTimeout(refreshT); refreshT=setTimeout(fetchAll, 40
 
 async function start(u){
   user = u;
+  try{ localStorage.setItem('marcado_user', JSON.stringify({id:u.id, email:u.email})); }catch(e){}
   $('authScreen').classList.remove('on');
   $('appWrap').classList.add('on');
   $('accEmail').textContent = u.email||'—';
@@ -648,7 +649,7 @@ $('liSave').onclick=async()=>{
   editingList.name=n; saveCache(); renderAll(); close('ovList');
   await push('lists','upsert',{id:editingList.id,name:n,owner:editingList.owner,invite_code:editingList.invite_code});
 };
-$('liCopy').onclick=()=>{ navigator.clipboard?.writeText($('liCode').textContent); $('liCopy').style.opacity=.4; setTimeout(()=>$('liCopy').style.opacity=1,600); };
+$('liCopy').onclick=()=>{ navigator.clipboard?.writeText($('liCode').textContent); const c=$('liCode'), old=c.textContent; c.textContent='Copiado!'; setTimeout(()=>c.textContent=old,900); };
 $('liDelete').onclick=async()=>{
   if(!editingList) return;
   const own = editingList.owner===user.id;
@@ -893,9 +894,17 @@ function renderAll(){ renderTabs(); renderItems(); }
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 (async()=>{
   if (!configured()){ $('authScreen').classList.add('on'); $('authErr').textContent='Configure SUPABASE_URL e ANON_KEY no index.html'; return; }
-  const { data } = await sb.auth.getSession();
-  if (data && data.session) await start(data.session.user);
-  else $('authScreen').classList.add('on');
+  let session=null;
+  try{ const { data } = await sb.auth.getSession(); session = data && data.session; }catch(e){}
+  let cached=null; try{ cached=JSON.parse(localStorage.getItem('marcado_user')||'null'); }catch(e){}
+  if (session) await start(session.user);
+  else if (cached && !navigator.onLine){
+    /* sem internet e sessão expirada: entra em modo offline com dados locais */
+    await start(cached);
+  } else {
+    if (cached && cached.email) $('authEmail').value = cached.email;
+    $('authScreen').classList.add('on');
+  }
 })();
 </script>
 </body>
