@@ -1,4 +1,4 @@
-const CACHE = 'marcado-v3';
+const CACHE = 'marcado-v4';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
